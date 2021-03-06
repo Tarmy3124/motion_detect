@@ -53,7 +53,7 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
     in.substract_mean_normalize(mean_vals, norm_vals);
 
     ncnn::Extractor ex = detector.create_extractor();
-    ex.set_num_threads(8);
+    ex.set_num_threads(4);
     ex.input("data", in);
     ncnn::Mat out;
     ex.extract("output", out);
@@ -91,6 +91,32 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
         cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
         cv::putText(image, text, cv::Point(x1, y1 + label_size.height),
                     cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+    }
+    return 0;
+}
+
+int test_cam()
+{
+    //定义yolo-fastest VOC检测器
+    ncnn::Net detector;  
+    detector.load_param("/home/shunya/ros/papera/catkin_yolo/src/motin_detect/src/model/yolo-fastest.param");
+    detector.load_model("/home/shunya/ros/papera/catkin_yolo/src/motin_detect/src/model/yolo-fastest.bin");
+    int detector_size_width  = 320;
+    int detector_size_height = 320;
+
+    cv::Mat frame;
+    cv::VideoCapture cap(0);
+
+    while (true)
+    {
+        cap >> frame;
+        double start = ncnn::get_current_time();
+        demo(frame, detector, detector_size_width, detector_size_height);
+        double end = ncnn::get_current_time();
+        double time = end - start;
+        printf("Time:%7.2f \n",time);
+        cv::imshow("demo", frame);
+        cv::waitKey(1);
     }
     return 0;
 }
@@ -219,6 +245,8 @@ static float depth_last,depthL1,depthL2,center_x=317.808,center_y=211.492,consta
 
 int main(int argc,char** argv)
 {
+    test_cam(); //_ncnn
+    return 0;
     ros::init(argc,argv,"motionyolo");   
     ros::NodeHandle nh;
 

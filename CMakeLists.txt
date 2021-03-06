@@ -141,7 +141,8 @@ include_directories(
   #include
   #${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
-  /home/tarmy/work/thirdparty/ncnn/build/install/include/ncnn
+  /home/shunya/work/thirdparty/build-aarch64-linux-gnu/src/CMakeFiles/Export/ncnn
+
 )
 
 ## Declare a C++ library
@@ -234,7 +235,7 @@ add_executable(yolodetect src/motion.cpp)
 set(LINK_LIBS
   ${OpenCV_LIBS}
   ${catkin_LIBRARIES}
-  /home/tarmy/work/thirdparty/ncnn/build/install/lib/libncnn.a
+  /home/shunya/work/thirdparty/build-aarch64-linux-gnu/src/libncnn.a
 )
 #add_dependencies(motionDetect ${${motionDetect}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 #target_link_libraries(motionDetect ${catkin_LIBRARIES})
