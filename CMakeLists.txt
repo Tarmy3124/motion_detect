@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
+  message_generation
+  yolofast
   #OpenCV
 )
 
@@ -54,11 +56,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
+ add_message_files(
+   FILES
 #   Message1.msg
-#   Message2.msg
-# )
+  DetsPersonPositon.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -79,6 +81,12 @@ find_package(catkin REQUIRED COMPONENTS
 #   DEPENDENCIES
 #   sensor_msgs#   std_msgs
 # )
+
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -214,12 +222,12 @@ include_directories(
 # endif()
 
 ## Add folders to be run by python nosetests
-add_executable(motionDetect src/motion.cpp)
+add_executable(yolodetect src/motion.cpp)
 set(LINK_LIBS
   ${OpenCV_LIBS}
   ${catkin_LIBRARIES}
 )
 #add_dependencies(motionDetect ${${motionDetect}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 #target_link_libraries(motionDetect ${catkin_LIBRARIES})
-target_link_libraries(motionDetect ${LINK_LIBS})
+target_link_libraries(yolodetect ${LINK_LIBS})
 # catkin_add_nosetests(test)
