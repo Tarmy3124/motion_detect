@@ -9,6 +9,13 @@ project(motion_detect)
 ## is used, also find other catkin packages
 #set(OpenCV_DIR /opt/ros/kinetic/share/OpenCV-3.3.1-dev)
 find_package(OpenCV REQUIRED)
+find_package(OpenMP)  ##cpu acceleration
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
@@ -134,6 +141,7 @@ include_directories(
   #include
   #${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  /home/tarmy/work/thirdparty/ncnn/build/install/include/ncnn
 )
 
 ## Declare a C++ library
@@ -226,6 +234,7 @@ add_executable(yolodetect src/motion.cpp)
 set(LINK_LIBS
   ${OpenCV_LIBS}
   ${catkin_LIBRARIES}
+  /home/tarmy/work/thirdparty/ncnn/build/install/lib/libncnn.a
 )
 #add_dependencies(motionDetect ${${motionDetect}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 #target_link_libraries(motionDetect ${catkin_LIBRARIES})
