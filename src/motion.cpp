@@ -28,6 +28,12 @@
 #include <vector>
 #include <algorithm>
 
+using namespace std;
+using namespace cv;
+
+bool new_yolomsg=false;
+float det_rxL,det_rxR,det_rxT,det_rxB;
+//tarmy data
 //ncnn-----------------------------------------
 int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detector_size_height)
 {
@@ -64,6 +70,7 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
         float x1, y1, x2, y2, score;
         float pw,ph,cx,cy;
         const float* values = out.row(i);
+
         
         x1 = values[2] * img_w;
         y1 = values[3] * img_h;
@@ -72,7 +79,7 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
 
         score = values[1];
         label = values[0];
-
+        if(strcmp(class_names[label],"person")!=0)continue; //only select person label
         //处理坐标越界问题
         if(x1<0) x1=0;
         if(y1<0) y1=0;
@@ -83,7 +90,16 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
         if(y1>img_h) y1=img_h;
         if(x2>img_w) x2=img_w;
         if(y2>img_h) y2=img_h;
+        
+        det_rxL=x1;
+        det_rxR=x2;
+        det_rxB=y1;
+        det_rxT=y2;
+        new_yolomsg=true; //we got the person positon !
+
         cv::rectangle (image, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 255, 0), 1, 1, 0);
+        //Debug
+        std::cout<<x1<<'\n'<<x2<<'\n'<<y1<<'\n'<<y2<<'\n';
 
         char text[256];
         sprintf(text, "%s %.1f%%", class_names[label], score * 100);
@@ -126,11 +142,6 @@ int test_cam()
 
 
 
-using namespace std;
-using namespace cv;
-
-bool new_yolomsg=false;
-float det_rxL,det_rxR,det_rxT,det_rxB;
 
     // yolo define
     nav_msgs::Path gui_path;    
