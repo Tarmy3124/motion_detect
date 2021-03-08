@@ -33,6 +33,7 @@ using namespace cv;
 
 bool new_yolomsg=false;
 float det_rxL,det_rxR,det_rxT,det_rxB;
+cv::Mat frame_G;
 //tarmy data
 //ncnn-----------------------------------------
 int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detector_size_height)
@@ -256,33 +257,31 @@ static float depth_last,depthL1,depthL2,center_x=317.808,center_y=211.492,consta
 void imageCallback(const sensor_msgs::ImageConstPtr& msg)
  {
      cv_bridge::CvImagePtr cv_ptr;
-
+     cv::Mat frame;
      try
        {
         cout<<"ok";
          cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
-     ncnn::Net detector;
-    detector.load_param("/home/shunya/ros/papera/catkin_yolo/src/motin_detect/src/model/yolo-fastest.param");
-    detector.load_model("/home/shunya/ros/papera/catkin_yolo/src/motin_detect/src/model/yolo-fastest.bin");
-    int detector_size_width  = 320;
-    int detector_size_height = 320;
+      //frame= cv_bridge::toCvCopy(msg, msg->encoding)->image;
+      frame_G= cv_bridge::toCvCopy(msg, msg->encoding)->image;
+   
 
-    cv::Mat frame;
+
    // cv::VideoCapture cap(0);
 
    // while (true)
    // {
        // cap >> frame;
-        frame = cv_ptr->image;
-        double start = ncnn::get_current_time();
+       // frame = cv_ptr->image;
+    /*    double start = ncnn::get_current_time();
         demo(frame, detector, detector_size_width, detector_size_height);
 
-       // cv::imshow("demo", frame);
-        //cv::waitKey(0.2);
+        cv::imshow("demo", frame);
+        cv::waitKey(1);
         double end = ncnn::get_current_time();
         double time = end - start;
         printf("Time:%7.2f \n",time);
-     
+    */ 
         // emit Show_image(0,im);
        }
        catch (cv_bridge::Exception& e)
@@ -299,6 +298,7 @@ int main(int argc,char** argv)
     //return 0;
     ros::init(argc,argv,"motionyolo");   
     ros::NodeHandle nh;
+    ros::Rate loop_rate(40);
     image_transport::ImageTransport it_(nh);
     image_transport::Subscriber image_sub;
     image_sub=it_.subscribe("/camera/color/image_raw",100,imageCallback,image_transport::TransportHints("raw"));
@@ -308,7 +308,27 @@ int main(int argc,char** argv)
 //yolo sub
    dets_sub = nh.subscribe("/yoloDetsTx", 10,detsCallback);
    mynt_depth = nh.subscribe("/camera/depth/image_rect_raw",1000,depthCallback);
-   ros::spin();
+
+     ncnn::Net detector;
+    detector.load_param("/home/shunya/ros/papera/catkin_yolo/src/motin_detect/src/model/yolo-fastest.param");
+    detector.load_model("/home/shunya/ros/papera/catkin_yolo/src/motin_detect/src/model/yolo-fastest.bin");
+    int detector_size_width  = 320;
+    int detector_size_height = 320;
+      while (ros::ok())
+    {
+       // cap >> frame;
+        double start = ncnn::get_current_time();
+        demo(frame_G, detector, detector_size_width, detector_size_height);
+
+        //cv::imshow("demo", frame_G);
+        double end = ncnn::get_current_time();
+        double time = end - start;
+        printf("Time:%7.2f \n",time);
+        cv::waitKey(1);
+        ros::spinOnce();
+        loop_rate.sleep();
+     }
+   
 
 }
 
