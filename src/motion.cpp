@@ -99,7 +99,7 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
 
         cv::rectangle (image, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 255, 0), 1, 1, 0);
         //Debug
-        std::cout<<x1<<'\n'<<x2<<'\n'<<y1<<'\n'<<y2<<'\n';
+       // std::cout<<x1<<'\n'<<x2<<'\n'<<y1<<'\n'<<y2<<'\n';
 
         char text[256];
         sprintf(text, "%s %.1f%%", class_names[label], score * 100);
@@ -253,15 +253,56 @@ static float depth_last,depthL1,depthL2,center_x=317.808,center_y=211.492,consta
    new_yolomsg =false;//姣忔寰幆浠诲姟缁撳熬娑堟伅鏍囧織娓呴櫎
     //ROS_INFO("Center distance : %g m", depths[centerIdx]);
 }
+void imageCallback(const sensor_msgs::ImageConstPtr& msg)
+ {
+     cv_bridge::CvImagePtr cv_ptr;
 
+     try
+       {
+        cout<<"ok";
+         cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
+     ncnn::Net detector;
+    detector.load_param("/home/shunya/ros/papera/catkin_yolo/src/motin_detect/src/model/yolo-fastest.param");
+    detector.load_model("/home/shunya/ros/papera/catkin_yolo/src/motin_detect/src/model/yolo-fastest.bin");
+    int detector_size_width  = 320;
+    int detector_size_height = 320;
+
+    cv::Mat frame;
+   // cv::VideoCapture cap(0);
+
+   // while (true)
+   // {
+       // cap >> frame;
+        frame = cv_ptr->image;
+        double start = ncnn::get_current_time();
+        demo(frame, detector, detector_size_width, detector_size_height);
+
+       // cv::imshow("demo", frame);
+        //cv::waitKey(0.2);
+        double end = ncnn::get_current_time();
+        double time = end - start;
+        printf("Time:%7.2f \n",time);
+     
+        // emit Show_image(0,im);
+       }
+       catch (cv_bridge::Exception& e)
+       {
+
+        // log(Error,("video frame0 exception: "+QString(e.what())).toStdString());
+        cout<<"something wrong with video input"; 
+        return;
+       }
+ }
 int main(int argc,char** argv)
 {
-    test_cam(); //_ncnn
-    return 0;
+    //test_cam(); //_ncnn
+    //return 0;
     ros::init(argc,argv,"motionyolo");   
     ros::NodeHandle nh;
-
-  vis_pub = nh.advertise<visualization_msgs::Marker>( "visualization_marker", 10);
+    image_transport::ImageTransport it_(nh);
+    image_transport::Subscriber image_sub;
+    image_sub=it_.subscribe("/camera/color/image_raw",100,imageCallback,image_transport::TransportHints("raw"));
+    vis_pub = nh.advertise<visualization_msgs::Marker>( "visualization_marker", 10);
  //yolo
   yolo_person_pub = nh.advertise<nav_msgs::Path>("personTrajectory",10, true);
 //yolo sub
