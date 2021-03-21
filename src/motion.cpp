@@ -38,14 +38,20 @@ cv::Mat frame_G;
 //ncnn-----------------------------------------
 int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detector_size_height)
 {
-
+/*
     static const char* class_names[] = {"background",
                                         "aeroplane", "bicycle", "bird", "boat",
                                         "bottle", "bus", "car", "cat", "chair",
                                         "cow", "diningtable", "dog", "horse",
                                         "motorbike", "person", "pottedplant",
-                                        "sheep", "sofa", "train", "tvmonitor"
+                                        "sheep", "sofa", "train", "tvmonitor","basketball"
                                        };
+*/
+    //basketball
+    static const char* class_names[] = {"background",
+                                        "basketball"
+                                       };
+    
 
     cv::Mat bgr = image.clone();
     int img_w = bgr.cols;
@@ -60,7 +66,7 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
     in.substract_mean_normalize(mean_vals, norm_vals);
 
     ncnn::Extractor ex = detector.create_extractor();
-    ex.set_num_threads(4);
+    ex.set_num_threads(2);
     ex.input("data", in);
     ncnn::Mat out;
     ex.extract("output", out);
@@ -80,7 +86,9 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
 
         score = values[1];
         label = values[0];
-        if(strcmp(class_names[label],"person")!=0)continue; //only select person label
+        //if(strcmp(class_names[label],"person")!=0)continue; //only select person label
+        //basketbal
+        if(strcmp(class_names[label],"basketball")!=0)continue; //only select basketball
         //处理坐标越界问题
         if(x1<0) x1=0;
         if(y1<0) y1=0;
@@ -101,6 +109,7 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
         cv::rectangle (image, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 255, 0), 1, 1, 0);
         //Debug
        // std::cout<<x1<<'\n'<<x2<<'\n'<<y1<<'\n'<<y2<<'\n';
+        
 
         char text[256];
         sprintf(text, "%s %.1f%%", class_names[label], score * 100);
@@ -184,14 +193,27 @@ void depthCallback(const sensor_msgs::Image::ConstPtr& msg)
 
     int u = (det_rxL+det_rxR)  / 2;
     int v = (det_rxT+det_rxB)/ 2;
-    //int u1=(det_rxL+det_rxR+10)  / 2;
-    //int v1=(det_rxT+det_rxB+10)/ 2;
+    int u1=(det_rxL+det_rxR+3)  / 2;
+    int v1=(det_rxT+det_rxB+3)/ 2;
    // std::cout<<"u----"<<u<<"v----"<<v;
     std::cout<<"depth_ptr->imageat<uint16_t>(v, u);\n"<<depth_ptr->image.at<float>(v, u)<<std::endl;
    // int centerIdx = u + msg->width * v;
  //   float depth,depthL1,depthL2,center_x=387.029,center_y=241.294,constant_x=0.0027087,constant_y=0.00270966;
 static float depth_last,depthL1,depthL2,center_x=317.808,center_y=211.492,constant_x=0.0020104397,constant_y=0.00201100853;
-  float depth=depth_ptr->image.at<float>(v, u); //problem
+  float depth_sort[3];
+   depth_sort[0]=depth_ptr->image.at<float>(v, u); //center
+   depth_sort[1]=depth_ptr->image.at<float>(v1, u); //center+5
+   depth_sort[2]=depth_ptr->image.at<float>(v, u1); //center
+  float sort_temp=0.0f;  
+for (int i_sort=0;i_sort<2;i_sort++){
+  if(depth_sort[i_sort]>depth_sort[i_sort+1]){
+  sort_temp=depth_sort[i_sort];
+  depth_sort[i_sort]=depth_sort[i_sort+1];
+  depth_sort[i_sort+1]=sort_temp;
+  }
+}
+  float depth = depth_sort[1];
+  std::cout<<"depth_sort is \n"<<depth_sort<<std::endl;
 
     ROS_INFO("Center distance : %f mm", depth);
     
@@ -243,7 +265,7 @@ static float depth_last,depthL1,depthL2,center_x=317.808,center_y=211.492,consta
       this_pose_stamped.pose.position.y =point[0]*0.001; 
       this_pose_stamped.pose.position.z =point[1]*0.001;   
     
-   if (gui_path.poses.size()>5)gui_path.poses.erase(gui_path.poses.begin());
+   if (gui_path.poses.size()>200)gui_path.poses.erase(gui_path.poses.begin());
    gui_path.poses.push_back(this_pose_stamped);
      
   yolo_person_pub.publish(gui_path);
@@ -264,6 +286,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
          cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
       //frame= cv_bridge::toCvCopy(msg, msg->encoding)->image;
       frame_G= cv_bridge::toCvCopy(msg, msg->encoding)->image;
+      
    
 
 
@@ -319,12 +342,11 @@ int main(int argc,char** argv)
        // cap >> frame;
         double start = ncnn::get_current_time();
         demo(frame_G, detector, detector_size_width, detector_size_height);
-
         //cv::imshow("demo", frame_G);
         double end = ncnn::get_current_time();
         double time = end - start;
         printf("Time:%7.2f \n",time);
-        cv::waitKey(1);
+        //cv::waitKey(1);  //not necessary? 
         ros::spinOnce();
         loop_rate.sleep();
      }
