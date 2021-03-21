@@ -35,6 +35,7 @@ bool new_yolomsg=false;
 float det_rxL,det_rxR,det_rxT,det_rxB;
 cv::Mat frame_G;
 //tarmy data
+ float depth;
 //ncnn-----------------------------------------
 int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detector_size_height)
 {
@@ -88,7 +89,10 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
         label = values[0];
         //if(strcmp(class_names[label],"person")!=0)continue; //only select person label
         //basketbal
-        if(strcmp(class_names[label],"basketball")!=0)continue; //only select basketball
+        if(strcmp(class_names[label],"basketball")!=0){
+        new_yolomsg=false;
+        continue; //only select basketball
+        }
         //处理坐标越界问题
         if(x1<0) x1=0;
         if(y1<0) y1=0;
@@ -114,9 +118,10 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
         char text[256];
         sprintf(text, "%s %.1f%%", class_names[label], score * 100);
         int baseLine = 0;
-        cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
-        cv::putText(image, text, cv::Point(x1, y1 + label_size.height),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+        //for imshow ,not necessary
+        //cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
+       // cv::putText(image, text, cv::Point(x1, y1 + label_size.height),
+               //     cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
     }
     return 0;
 }
@@ -195,24 +200,34 @@ void depthCallback(const sensor_msgs::Image::ConstPtr& msg)
     int v = (det_rxT+det_rxB)/ 2;
     int u1=(det_rxL+det_rxR+3)  / 2;
     int v1=(det_rxT+det_rxB+3)/ 2;
+    int u2=(det_rxL+det_rxR-2)  / 2;
+    int v2=(det_rxT+det_rxB-2)/ 2;
    // std::cout<<"u----"<<u<<"v----"<<v;
     std::cout<<"depth_ptr->imageat<uint16_t>(v, u);\n"<<depth_ptr->image.at<float>(v, u)<<std::endl;
    // int centerIdx = u + msg->width * v;
  //   float depth,depthL1,depthL2,center_x=387.029,center_y=241.294,constant_x=0.0027087,constant_y=0.00270966;
 static float depth_last,depthL1,depthL2,center_x=317.808,center_y=211.492,constant_x=0.0020104397,constant_y=0.00201100853;
-  float depth_sort[3];
+  float depth_sort[8];
    depth_sort[0]=depth_ptr->image.at<float>(v, u); //center
    depth_sort[1]=depth_ptr->image.at<float>(v1, u); //center+5
    depth_sort[2]=depth_ptr->image.at<float>(v, u1); //center
+   depth_sort[3]=depth_ptr->image.at<float>(v, u); //center-2
+   depth_sort[4]=depth_ptr->image.at<float>(v2, u); //center
+   depth_sort[5]=depth_ptr->image.at<float>(v, u2); //center
+   depth_sort[6]=depth_ptr->image.at<float>(v2, u2); //center
+   depth_sort[7]=depth_ptr->image.at<float>(-v1, -u1); //center
+   
   float sort_temp=0.0f;  
-for (int i_sort=0;i_sort<2;i_sort++){
+for (int i_sort=0;i_sort<7;i_sort++){
   if(depth_sort[i_sort]>depth_sort[i_sort+1]){
   sort_temp=depth_sort[i_sort];
   depth_sort[i_sort]=depth_sort[i_sort+1];
   depth_sort[i_sort+1]=sort_temp;
   }
 }
-  float depth = depth_sort[1];
+  depth = depth_sort[4];
+  //rule out the point near original
+  if(depth>300.f){
   std::cout<<"depth_sort is \n"<<depth_sort<<std::endl;
 
     ROS_INFO("Center distance : %f mm", depth);
@@ -271,6 +286,7 @@ for (int i_sort=0;i_sort<2;i_sort++){
   yolo_person_pub.publish(gui_path);
   // publishPoints(point, msg);
    vis_pub.publish(marker);
+   }
    
  }
    new_yolomsg =false;//姣忔寰幆浠诲姟缁撳熬娑堟伅鏍囧織娓呴櫎
