@@ -35,7 +35,7 @@ bool new_yolomsg=false;
 float det_rxL,det_rxR,det_rxT,det_rxB;
 cv::Mat frame_G;
 //tarmy data
- float depth;
+float depth;
 //ncnn-----------------------------------------
 int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detector_size_height)
 {
@@ -89,10 +89,7 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
         label = values[0];
         //if(strcmp(class_names[label],"person")!=0)continue; //only select person label
         //basketbal
-        if(strcmp(class_names[label],"basketball")!=0){
-        new_yolomsg=false;
-        continue; //only select basketball
-        }
+        if(strcmp(class_names[label],"basketball")!=0)continue; //only select basketball
         //处理坐标越界问题
         if(x1<0) x1=0;
         if(y1<0) y1=0;
@@ -118,10 +115,9 @@ int demo(cv::Mat& image, ncnn::Net &detector, int detector_size_width, int detec
         char text[256];
         sprintf(text, "%s %.1f%%", class_names[label], score * 100);
         int baseLine = 0;
-        //for imshow ,not necessary
-        //cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
-       // cv::putText(image, text, cv::Point(x1, y1 + label_size.height),
-               //     cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+        cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
+        cv::putText(image, text, cv::Point(x1, y1 + label_size.height),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
     }
     return 0;
 }
@@ -226,34 +222,32 @@ for (int i_sort=0;i_sort<7;i_sort++){
   }
 }
   depth = depth_sort[4];
-  //rule out the point near original
-  if(depth>300.f){
   std::cout<<"depth_sort is \n"<<depth_sort<<std::endl;
 
-    ROS_INFO("Center distance : %f mm", depth);
-    
+  //  ROS_INFO("Center distance : %f mm", depth);
+    if(depth>300.f){
 
     cv::Vec3f point;
 
-      point[0] = -(u - center_x) * depth * constant_x ;
-      point[1] = -(v - center_y) * depth * constant_y ;
-      point[2] = -depth;
+      point[0] = (u - center_x) * depth * constant_x ;
+      point[1] = (v - center_y) * depth * constant_y ;
+      point[2] = depth;
      //cout<<"external"<<point<<endl;
      //yolo publish the person trajactory
 
      //visualization with maker
      //http://wiki.ros.org/rviz/DisplayTypes/Marker#Sphere_.28SPHERE.3D2.29
      //1.1Example Usage
-	marker.header.frame_id = "camera_depth_optical_frame";
+	marker.header.frame_id = "camera_aligned_depth_to_color_frame";
 	marker.header.stamp = msg->header.stamp;
         gui_path.header.seq++;
 	marker.ns = "my_yolo_namespace";
 	marker.id = 0;
 	marker.type = visualization_msgs::Marker::SPHERE;
 	marker.action = visualization_msgs::Marker::ADD;
-	marker.pose.position.x = point[2]*0.001;
-	marker.pose.position.y = point[0]*0.001;
-	marker.pose.position.z = point[1]*0.001;
+	marker.pose.position.x = point[0]*0.001;
+	marker.pose.position.y = point[1]*0.001;
+	marker.pose.position.z = point[2]*0.001;
 	marker.pose.orientation.x = 0.0;
 	marker.pose.orientation.y = 0.0;
 	marker.pose.orientation.z = 0.0;
@@ -269,16 +263,16 @@ for (int i_sort=0;i_sort<7;i_sort++){
     //visualization with path
     //nav_msgs::Path path;
     gui_path.header.stamp=msg->header.stamp;
-    gui_path.header.frame_id="camera_depth_optical_frame";
+    gui_path.header.frame_id="camera_aligned_depth_to_color_frame";
     gui_path.header.seq++;
 
     this_pose_stamped.header.stamp=msg->header.stamp;
     this_pose_stamped.header.seq++;
-    this_pose_stamped.header.frame_id="camera_depth_optical_ frame";
+    this_pose_stamped.header.frame_id="camera_aligned_depth_to_color_frame";
     //this_pose_stamped.header.frame_id=msg->header.frame_id;
-    this_pose_stamped.pose.position.x =point[2]*0.001;
-      this_pose_stamped.pose.position.y =point[0]*0.001; 
-      this_pose_stamped.pose.position.z =point[1]*0.001;   
+    this_pose_stamped.pose.position.x =point[0]*0.001;
+      this_pose_stamped.pose.position.y =point[1]*0.001; 
+      this_pose_stamped.pose.position.z =point[2]*0.001;   
     
    if (gui_path.poses.size()>200)gui_path.poses.erase(gui_path.poses.begin());
    gui_path.poses.push_back(this_pose_stamped);
@@ -287,7 +281,6 @@ for (int i_sort=0;i_sort<7;i_sort++){
   // publishPoints(point, msg);
    vis_pub.publish(marker);
    }
-   
  }
    new_yolomsg =false;//姣忔寰幆浠诲姟缁撳熬娑堟伅鏍囧織娓呴櫎
     //ROS_INFO("Center distance : %g m", depths[centerIdx]);
